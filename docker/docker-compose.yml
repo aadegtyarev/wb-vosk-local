@@ -1,0 +1,22 @@
+version: '3'
+services:
+  wb-vosk:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wb-vosk-container
+    image: wb-vosk:latest
+    restart: always
+    devices:
+      - "/dev/snd:/dev/snd"  # Проброс аудиоустройств
+    network_mode: "host"  # Подключение к MQTT на хосте
+    environment:
+      - MQTT_BROKER=localhost
+      - MQTT_PORT=1883
+      - DEVICE_ID=wb-vosk-local
+      - SAMPLE_RATE=16000
+      - BLOCK_SIZE=8000
+      - CHANNELS=1
+      - ACTIVATION_WORD=Контроллер
+      - MIN_WORD_LENGTH=3
+      - VOSK_MODEL_PATH=/opt/vosk-model-ru/model

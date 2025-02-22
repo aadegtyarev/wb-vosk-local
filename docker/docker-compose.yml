@@ -8,8 +8,7 @@ services:
     image: wb-vosk:latest
     restart: always
     devices:
-      - "/dev/snd:/dev/snd"  # Проброс аудиоустройств
-    network_mode: "host"  # Подключение к MQTT на хосте
+      - "/dev/snd:/dev/snd"  # Проброс звукового устройства
     environment:
       - MQTT_BROKER=localhost
       - MQTT_PORT=1883
@@ -20,3 +19,8 @@ services:
       - ACTIVATION_WORD=Контроллер
       - MIN_WORD_LENGTH=3
       - VOSK_MODEL_PATH=/opt/vosk-model-ru/model
+      - MULTI_MIC_MODE=true  # Включаем поддержку нескольких микрофонов
+      - PULSE_SERVER=unix:/tmp/pulse/native
+    volumes:
+      - "$XDG_RUNTIME_DIR/pulse/native:/tmp/pulse/native"  # Проброс PulseAudio для Bluetooth микрофонов
+    command: ["bash", "-c", "export PULSE_SERVER=unix:/tmp/pulse/native && pulseaudio --start && python3 /app/wb-vosk-local.py"]

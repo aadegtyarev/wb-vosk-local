@@ -1,27 +1,67 @@
-# wb-vosk-local: Локальное голосовое управление для Wiren Board
+# wb-vosk-local
 
-Этот проект интегрирует **Vosk** с **MQTT на контроллере Wiren Board**.
-Голосовые команды передаются в **виртуальное устройство** WB через MQTT.
+## Описание
+Этот проект представляет собой контейнерized-сервис для **автономного голосового управления** с использованием **Vosk Speech Recognition**, работающий на **Wiren Board 8**.
+Он получает аудиопоток с **USB и Bluetooth микрофонов**, распознает команды и отправляет результат в **MQTT**.
 
-⚠ **Ограничение:** Проект поддерживает **только один USB микрофон**. Если у вас несколько аудиоустройств, укажите нужный `hw:0,0` при пробросе в Dockerfile: в разделе environment добавьте `- ALSA_DEVICE=hw:0,0`.
+### Функции
+- ✅ Поддержка **нескольких USB и Bluetooth микрофонов одновременно**
+- ✅ Различение **источника команды** (в MQTT передается имя микрофона)
+- ✅ Фильтрация коротких слов (**исключает обрывки, "а", "ов" и т.п.**)
+- ✅ Работа **как с одним, так и с несколькими микрофонами**
+- ✅ Полностью **локальная работа**, без облачных сервисов
 
-## 1. Установка на Wiren Board
 
-### 1.1 Клонируйте репозиторий
+## 1. Установка на Wiren Board 7/8
+Перед установкой убедитесь, что **ваш контроллер поддерживает работу с USB и Bluetooth аудиоустройствами**.
+
+### 1.1. Установите необходимые пакеты
+```bash
+apt update
+apt install -y pulseaudio pulseaudio-utils bluez bluez-tools alsa-utils
+```
+
+### 1.2. Включите и запустите PulseAudio
+```bash
+systemctl --user enable pulseaudio
+systemctl --user start pulseaudio
+```
+
+### 1.3. Проверка звуковых устройств
+**Список всех микрофонов (USB и Bluetooth):**
+```bash
+pactl list sources | grep Name
+```
+Пример вывода:
+```
+Name: bluez_source.94_DB_56_A7_F5_38.a2dp_source
+Name: bluez_source.80_AB_30_C2_15_10.a2dp_source
+```
+Если здесь есть устройства с `bluez_source`, значит, Bluetooth-микрофоны подключены.
+
+**Для USB-микрофонов:**
+```bash
+arecord -l
+```
+Если микрофон есть в списке — он работает.
+
+
+## 2. Запуск контейнера
+### 2.1. Клонируйте репозиторий
 ```bash
 apt update && apt install -y git
 git clone https://github.com/aadegtyarev/wb-vosk-local.git
 cd wb-vosk-local/docker
 ```
 
-### 1.2 Переключите контроллер на testing
+### 2.2 Переключите контроллер на testing
 
 В тестинг есть ядро с поддержкой аудиоустройств, команда:
 ```bash
 wb-release -t testing -y
 ```
 
-### 1.3 Установите Docker
+### 2.3 Установите Docker
 Если Docker еще не установлен, установите. Для этого запустите на контроллере скрипт:
 
 ```bash
@@ -31,93 +71,77 @@ chmod +x ./install_docker_to_wb.sh
 
 Скрипт написан по инструкции https://wirenboard.com/wiki/Docker, если что-то не работает — смотрите туда.
 
-## 2. Запуск Docker-контейнера
-
-### 2.1 Соберите образ
+### 2.4 Соберите контейнер
 ```bash
 docker compose build --no-cache
 ```
 
-### 2.2 Запустите контейнер
+### 2.5 Запустите контейнер
 ```bash
 docker compose up -d
 ```
 
-### 2.3 Проверьте логи
-```bash
-docker logs wb-vosk-container --tail 50
-```
 
-## 3. Проверка работы
-### 3.1 Подписаться на MQTT-топик с текстом
+## 3. Конфигурация
+Файл `docker-compose.yml` позволяет **настраивать параметры распознавания**.
+
+### 3.1. Выбор режима работы с микрофонами
+Если вы хотите использовать **несколько микрофонов (USB и Bluetooth)**, включите `MULTI_MIC_MODE`:
+```yaml
+environment:
+  - MULTI_MIC_MODE=true
+```
+Если микрофон **один**, установите `MULTI_MIC_MODE=false` или удалите переменную.
+
+### 3.2. Выбор конкретного микрофона
+1. **Получите список устройств**:
+   ```bash
+   docker exec -it wb-vosk-container python3 -c "import sounddevice as sd; print(sd.query_devices())"
+   ```
+2. **Пропишите нужный микрофон в `docker-compose.yml`**:
+   ```yaml
+   environment:
+     - ALSA_DEVICE=hw:1,0  # USB-микрофон
+   ```
+   Для **Bluetooth-микрофона**:
+   ```yaml
+   environment:
+     - ALSA_DEVICE=pulse
+   ```
+
+
+## 4. Проверка работы
+### 4.1. Подписка на MQTT
 ```bash
 mosquitto_sub -h localhost -t "/devices/wb-vosk-local/controls/text"
 ```
-Если все работает, голосовые команды будут появляться в этом топике.
-
-### 3.2 Проверить, работает ли микрофон в контейнере
-```bash
-docker exec -it wb-vosk-container arecord -l
-```
-Если устройство отображается — **значит, микрофон работает**.
-
-## 4. Настройка MQTT и WB-Rules
-### 4.1 Скопируйте скрипт в контроллер
-Скрипт из папки **`wb-rules-script/`** нужно скопировать на Wiren Board:
-```bash
-scp wb-rules-script/wb-vosk-rules.js root@wirenboard:/etc/wb-rules/
-```
-Затем **перезапустите WB-Rules**:
-```bash
-systemctl restart wb-rules
+Пример выходных данных:
+```json
+{"timestamp": 1740231544, "text": "включи свет", "mic": "USB Audio Device (hw:1,0)"}
+{"timestamp": 1740231550, "text": "выключи свет", "mic": "Bluetooth Mic - Sony WH-1000XM4"}
 ```
 
-## 5. Остановка и удаление контейнера
-### Остановить контейнер
+### 4.2. Тестовая запись
+Запишите звук и прослушайте:
+```bash
+arecord -D hw:1,0 -f cd test.wav
+aplay test.wav
+```
+
+
+## 5. Остановка контейнера
 ```bash
 docker compose down
 ```
-### Удалить образ
+
+## 6. Удаление контейнера
 ```bash
-docker rmi wb-vosk:latest
+docker compose rm -f wb-vosk-container
 ```
 
-## 6. Переменные окружения (настраиваемые параметры)
-Все настройки передаются через **переменные среды** в `docker-compose.yml`:
-
-| Параметр          | Описание                           | Значение по умолчанию |
-|-------------------|---------------------------------|-----------------------|
-| `MQTT_BROKER`    | Адрес MQTT-брокера             | `localhost`          |
-| `MQTT_PORT`      | Порт MQTT                      | `1883`               |
-| `DEVICE_ID`      | Имя виртуального устройства    | `wb-vosk-local`      |
-| `SAMPLE_RATE`    | Частота дискретизации звука    | `16000`              |
-| `BLOCK_SIZE`     | Размер блока звука             | `8000`               |
-| `CHANNELS`       | Количество каналов             | `1`                  |
-| `ACTIVATION_WORD`| Слово-активатор                | `"Контроллер"`       |
-| `MIN_WORD_LENGTH`| Минимальная длина слова       | `3`                  |
-| `VOSK_MODEL_PATH`| Путь к модели Vosk            | `/opt/vosk-model-ru/model` |
-
-Если нужно изменить параметры, **редактируйте `docker-compose.yml`** перед запуском.
-
-## 7. Подключение к Home Assistant (опционально)
-Если MQTT подключен к **Home Assistant**, можно **автоматически распознавать команды** и выполнять действия через автоматизации.
-
-```yaml
-mqtt:
-  sensor:
-    - name: "Vosk Recognized Text"
-      state_topic: "/devices/wb-vosk-local/controls/text"
-```
-
-## 8. Обновление
+## 7. Обновление
 ```bash
-cd wb-vosk-local
 git pull
 docker compose build --no-cache
 docker compose up -d
 ```
-
-### Поддержка и участие в проекте
-Поддержки нет, за риски отвечаете сами перед собой. Пуллреквесты приветствуются.
-
-

@@ -5,64 +5,64 @@
 
 ⚠ **Ограничение:** Проект поддерживает **только один USB микрофон**. Если у вас несколько аудиоустройств, укажите нужный `hw:0,0` при пробросе в Dockerfile: в разделе environment добавьте `- ALSA_DEVICE=hw:0,0`.
 
----
+## 1. Установка на Wiren Board
 
-## **1. Установка на Wiren Board**
-
-### **1.1 Клонируйте репозиторий**
+### 1.1 Клонируйте репозиторий
 ```bash
-git clone https://github.com/your-github-repo/wb-vosk-local.git
-cd wb-vosk-local
+apt update && apt install -y git
+git clone https://github.com/aadegtyarev/wb-vosk-local.git
+cd wb-vosk-local/docker
 ```
 
-### **1.2 Установите Docker**
+### 1.2 Переключите контроллер на testing
+
+В тестинг есть ядро с поддержкой аудиоустройств, команда:
+```bash
+wb-release -t testing -y
+```
+
+### 1.3 Установите Docker
 Если Docker еще не установлен, установите. Для этого запустите на контроллере скрипт:
 
 ```bash
-chmod +x docker/install_docker_to_wb.sh
-docker/install_docker_to_wb.sh
+chmod +x ./install_docker_to_wb.sh
+./install_docker_to_wb.sh
 ```
 
 Скрипт написан по инструкции https://wirenboard.com/wiki/Docker, если что-то не работает — смотрите туда.
 
----
+## 2. Запуск Docker-контейнера
 
-## **2. Запуск Docker-контейнера**
-
-### **2.1 Соберите образ**
+### 2.1 Соберите образ
 ```bash
 docker compose build --no-cache
 ```
 
-### **2.2 Запустите контейнер**
+### 2.2 Запустите контейнер
 ```bash
 docker compose up -d
 ```
 
-### **2.3 Проверьте логи**
+### 2.3 Проверьте логи
 ```bash
 docker logs wb-vosk-container --tail 50
 ```
 
----
-
-## **3. Проверка работы**
-### **3.1 Подписаться на MQTT-топик с текстом**
+## 3. Проверка работы
+### 3.1 Подписаться на MQTT-топик с текстом
 ```bash
 mosquitto_sub -h localhost -t "/devices/wb-vosk-local/controls/text"
 ```
 Если все работает, голосовые команды будут появляться в этом топике.
 
-### **3.2 Проверить, работает ли микрофон в контейнере**
+### 3.2 Проверить, работает ли микрофон в контейнере
 ```bash
 docker exec -it wb-vosk-container arecord -l
 ```
 Если устройство отображается — **значит, микрофон работает**.
 
----
-
-## **4. Настройка MQTT и WB-Rules**
-### **4.1 Скопируйте скрипт в контроллер**
+## 4. Настройка MQTT и WB-Rules
+### 4.1 Скопируйте скрипт в контроллер
 Скрипт из папки **`wb-rules-script/`** нужно скопировать на Wiren Board:
 ```bash
 scp wb-rules-script/wb-vosk-rules.js root@wirenboard:/etc/wb-rules/
@@ -72,21 +72,17 @@ scp wb-rules-script/wb-vosk-rules.js root@wirenboard:/etc/wb-rules/
 systemctl restart wb-rules
 ```
 
----
-
-## **5. Остановка и удаление контейнера**
-### **Остановить контейнер**
+## 5. Остановка и удаление контейнера
+### Остановить контейнер
 ```bash
 docker compose down
 ```
-### **Удалить образ**
+### Удалить образ
 ```bash
 docker rmi wb-vosk:latest
 ```
 
----
-
-## **6. Переменные окружения (настраиваемые параметры)**
+## 6. Переменные окружения (настраиваемые параметры)
 Все настройки передаются через **переменные среды** в `docker-compose.yml`:
 
 | Параметр          | Описание                           | Значение по умолчанию |
@@ -103,9 +99,7 @@ docker rmi wb-vosk:latest
 
 Если нужно изменить параметры, **редактируйте `docker-compose.yml`** перед запуском.
 
----
-
-## **7. Подключение к Home Assistant (опционально)**
+## 7. Подключение к Home Assistant (опционально)
 Если MQTT подключен к **Home Assistant**, можно **автоматически распознавать команды** и выполнять действия через автоматизации.
 
 ```yaml
@@ -115,9 +109,7 @@ mqtt:
       state_topic: "/devices/wb-vosk-local/controls/text"
 ```
 
----
-
-## **8. Обновление**
+## 8. Обновление
 ```bash
 cd wb-vosk-local
 git pull
@@ -125,9 +117,7 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
----
-
-### **Поддержка и участие в проекте**
+### Поддержка и участие в проекте
 Поддержки нет, за риски отвечаете сами перед собой. Пуллреквесты приветствуются.
 
 

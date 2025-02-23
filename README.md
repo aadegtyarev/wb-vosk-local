@@ -7,21 +7,37 @@
 
 ## 1. Установка на Wiren Board
 
-### 1.1 Клонируйте репозиторий
+### 1.1 Установите alsa-utils
+```bash
+apt install alsa-utils
+```
+
+### 1.2 Проверьте, что есть микрофоны
+Эта команда выведет все USB-микрофоны, в том числе и подключенные через USB-звуковую карту.
+```console
+# aplay -l
+**** List of PLAYBACK Hardware Devices ****
+card 0: ME6S [ME6S], device 0: USB Audio [USB Audio]
+  Subdevices: 1/1
+  Subdevice #0: subdevice #0
+
+```
+
+### 1.3 Клонируйте репозиторий
 ```bash
 apt update && apt install -y git
 git clone https://github.com/aadegtyarev/wb-vosk-local.git
 cd wb-vosk-local/docker
 ```
 
-### 1.2 Переключите контроллер на testing
+### 1.4 Переключите контроллер на testing
 
 В тестинг есть ядро с поддержкой аудиоустройств, команда:
 ```bash
 wb-release -t testing -y
 ```
 
-### 1.3 Установите Docker
+### 1.5 Установите Docker
 Если Docker еще не установлен, установите. Для этого запустите на контроллере скрипт:
 
 ```bash

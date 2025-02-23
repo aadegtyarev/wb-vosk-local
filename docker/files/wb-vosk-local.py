@@ -46,7 +46,8 @@ def create_virtual_device():
 
     controls = {
         "text": {"type": "text", "readonly": True, "order": 1, "title": {"en": "Recognized Text", "ru": "Распознанный текст"}},
-        "recognition_enabled": {"type": "switch", "order": 2, "title": {"en": "Enable Recognition", "ru": "Включить распознавание"}}
+        "recognition_enabled": {"type": "switch", "order": 2, "title": {"en": "Enable Recognition", "ru": "Включить распознавание"}},
+        "activation_word": {"type": "text", "readonly": True, "order": 3, "title": {"en": "Activation Word", "ru": "Слово активации"}}
     }
 
     for control, meta in controls.items():
@@ -56,7 +57,12 @@ def create_virtual_device():
 
     mqtt_client.publish(f"{MQTT_TOPIC_DEVICE}/controls/text", json.dumps({"timestamp": int(time.time()), "text": ""}, ensure_ascii=False), retain=True)
     mqtt_client.publish(f"{MQTT_TOPIC_DEVICE}/controls/recognition_enabled", "1", retain=True)
-    created_topics.extend([f"{MQTT_TOPIC_DEVICE}/controls/text", f"{MQTT_TOPIC_DEVICE}/controls/recognition_enabled"])
+    mqtt_client.publish(f"{MQTT_TOPIC_DEVICE}/controls/activation_word", ACTIVATION_WORD, retain=True)
+    created_topics.extend([
+        f"{MQTT_TOPIC_DEVICE}/controls/text",
+        f"{MQTT_TOPIC_DEVICE}/controls/recognition_enabled",
+        f"{MQTT_TOPIC_DEVICE}/controls/activation_word"
+    ])
 
 def delete_virtual_device():
     logging.info("Removing virtual device...")

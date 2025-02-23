@@ -25,13 +25,41 @@ wb-release -t testing -y
 ### 1.2. Установите необходимые пакеты
 ```bash
 apt update
-apt install -y pulseaudio pulseaudio-utils bluez bluez-tools alsa-utils
+apt install -y pulseaudio pulseaudio-utils pulseaudio-module-bluetooth bluez bluez-tools alsa-utils
 ```
 
-### 1.3. Включите и запустите PulseAudio
+### 1.3. Настройте запуск PulseAudio
+Откройте настройки:
 ```bash
-systemctl --user enable pulseaudio
-systemctl --user start pulseaudio
+nano /etc/pulse/daemon.conf
+```
+Найдите и раскомментируйте строку:
+```bash
+system-instance = yes
+```
+Создайте и запустите systemd-сервис для PulseAudio:
+```bash
+cat > /etc/systemd/system/pulseaudio.service <<EOF
+[Unit]
+Description=PulseAudio system-wide sound server
+After=sound.target
+
+[Service]
+ExecStart=/usr/bin/pulseaudio --daemonize=no --system
+Restart=always
+User=nobody
+Group=audio
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+Затем активируйте сервис:
+```bash
+systemctl daemon-reload
+systemctl enable pulseaudio
+systemctl start pulseaudio
 ```
 
 ### 1.4. Проверка звуковых устройств

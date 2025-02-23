@@ -29,6 +29,13 @@ apt install -y pulseaudio pulseaudio-utils pulseaudio-module-bluetooth bluez blu
 ```
 
 ### 1.3. Настройте запуск PulseAudio
+
+Отключите запуск от пользователя:
+```bash
+systemctl --user stop pulseaudio
+systemctl --user disable pulseaudio
+```
+
 Откройте настройки:
 ```bash
 nano /etc/pulse/daemon.conf
@@ -45,13 +52,15 @@ Description=PulseAudio system-wide sound server
 After=sound.target
 
 [Service]
-ExecStart=/usr/bin/pulseaudio --daemonize=no --system
+User=pulse
+Group=pulse
+ExecStart=/usr/bin/pulseaudio --system --disallow-exit --disallow-module-loading --daemonize=no
 Restart=always
-User=nobody
-Group=audio
+RestartSec=3
 
 [Install]
 WantedBy=multi-user.target
+
 EOF
 ```
 
@@ -60,6 +69,12 @@ EOF
 systemctl daemon-reload
 systemctl enable pulseaudio
 systemctl start pulseaudio
+```
+
+Проверьте, что аудиоустройства видны:
+```bash
+sudo -u pulse pactl list sinks short # динамики
+sudo -u pulse pactl list sources short # микрофоны
 ```
 
 ### 1.4. Проверка звуковых устройств

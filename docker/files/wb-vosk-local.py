@@ -22,7 +22,7 @@ VOSK_MODEL_PATH = os.getenv("VOSK_MODEL_PATH", "/opt/vosk-model-ru/model")
 ALSA_DEVICE = os.getenv("ALSA_DEVICE", None)  # Явное указание устройства, если задано
 
 # Logging configuration
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(message)s")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
 q = queue.Queue()
 recognizer_enabled = True

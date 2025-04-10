@@ -62,21 +62,6 @@ WantedBy=multi-user.target
 
 EOF
 ```
-
-Дальше надо включить `auth-anonymous=1`.
-Откройте файл 
-```
-nano /etc/pulse/system.pa
-```
-Добавь (или замени) строку подключения сокета на:
-```
-load-module module-native-protocol-unix auth-anonymous=1
-```
-Также добавь Bluetooth-модули в конец файла:
-```
-load-module module-bluetooth-policy
-load-module module-bluetooth-discover
-```
 Затем активируйте сервис:
 ```bash
 systemctl daemon-reload
@@ -108,6 +93,49 @@ arecord -l
 ```
 Если микрофон есть в списке — он работает.
 
+## Настройка Bluetooth
+### Настройка модулей pulse
+Надо включить `auth-anonymous=1`.
+Откройте файл 
+```
+nano /etc/pulse/system.pa
+```
+Добавь (или замени) строку подключения сокета на:
+```
+load-module module-native-protocol-unix auth-anonymous=1
+```
+Также добавь Bluetooth-модули в конец файла:
+```
+load-module module-bluetooth-policy
+load-module module-bluetooth-discover
+```
+Далее:
+```
+systemctl restart pulseaudio
+```
+### Подключение Bluetooth микрофона
+
+Войти в bluetoothctl
+```
+bluetoothctl
+```
+Включить питание и начать сканирование:
+```
+power on
+agent on
+default-agent
+scan on
+```
+Жди, пока появится устройство (например, наушники или микрофон). Пример строки:
+```
+Device 94:DB:56:A7:F5:38 Audio
+```
+Подключить:
+```
+pair 94:DB:56:A7:F5:38
+trust 94:DB:56:A7:F5:38
+connect 94:DB:56:A7:F5:38
+```
 
 ## 2. Запуск контейнера
 ### 2.1. Клонируйте репозиторий
@@ -136,7 +164,6 @@ docker compose build --no-cache
 ```bash
 docker compose up -d
 ```
-
 
 ## 3. Конфигурация
 Файл `docker-compose.yml` позволяет **настраивать параметры распознавания**.

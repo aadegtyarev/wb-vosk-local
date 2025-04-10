@@ -52,8 +52,7 @@ Description=PulseAudio system-wide sound server
 After=sound.target
 
 [Service]
-User=pulse
-Group=pulse
+Environment=HOME=/var/run/pulse
 ExecStart=/usr/bin/pulseaudio --system --disallow-exit --disallow-module-loading --daemonize=no
 Restart=always
 RestartSec=3

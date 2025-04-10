@@ -63,6 +63,20 @@ WantedBy=multi-user.target
 EOF
 ```
 
+Дальше надо включить `auth-anonymous=1`.
+Откройте файл 
+```
+nano /etc/pulse/system.pa
+```
+Добавь (или замени) строку подключения сокета на:
+```
+load-module module-native-protocol-unix auth-anonymous=1
+```
+Также добавь Bluetooth-модули в конец файла:
+```
+load-module module-bluetooth-policy
+load-module module-bluetooth-discover
+```
 Затем активируйте сервис:
 ```bash
 systemctl daemon-reload
